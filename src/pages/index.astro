@@ -1,0 +1,85 @@
+---
+import '@fontsource/barlow-condensed/latin-900.css';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { accessibleDate, formatDate, getPosts, readingMinutes } from '../lib/posts';
+import { pathTo, siteName, siteProfile } from '../lib/site';
+import '../styles/home.css';
+
+const posts = await getPosts();
+const homepagePosts = posts.filter((post) => !post.data.example);
+const featured = homepagePosts.find((post) => post.data.featured) ?? homepagePosts[0];
+const recent = homepagePosts.filter((post) => post.id !== featured?.id).slice(0, 3);
+---
+
+<BaseLayout title={siteName} active="home">
+  <div class="container publication">
+    <section class="home-cover" aria-labelledby="home-title">
+      <div class="cover-stage">
+        <div class="cover-ink cobalt-shape" aria-hidden="true"></div>
+        <div class="cover-foreground">
+          <h1 id="home-title" aria-label={siteName}>TS2Kk</h1>
+          <picture class="cover-art">
+            <img
+              src={pathTo('images/ts2kk-cover.webp')}
+              srcset={`${pathTo('images/ts2kk-cover-small.webp')} 700w, ${pathTo('images/ts2kk-cover.webp')} 1200w`}
+              sizes="(max-width: 700px) 110vw, 650px"
+              alt="由 TS2Kk 头像衍生的钴蓝色石雕剪影"
+              width="1200"
+              height="1200"
+              fetchpriority="high"
+            />
+          </picture>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-profile" aria-labelledby="profile-name">
+      <img class="profile-avatar" src={pathTo(siteProfile.avatar)} alt="" width="960" height="960" decoding="async" />
+      <div class="profile-copy">
+        <h2 id="profile-name">{siteProfile.name}</h2>
+        <p>{siteProfile.bio}</p>
+        <a class="profile-email animated-underline" href={`mailto:${siteProfile.email}`}>{siteProfile.email}</a>
+      </div>
+      <nav class="profile-links" aria-label="作者资料">
+        <a class="animated-underline" href={siteProfile.githubUrl}>GitHub <span>@{siteProfile.githubHandle}</span></a>
+        <a class="animated-underline" href={pathTo('about/')}>关于我</a>
+      </nav>
+    </section>
+
+    <section class="publication-index" id="writing" aria-label="博客文章">
+      {featured && (
+        <article class="lead-article" aria-labelledby="lead-title">
+          <p class="publication-label">精选文章</p>
+          <h2 id="lead-title"><a href={pathTo(`posts/${encodeURIComponent(featured.id)}/`)}>{featured.data.title}</a></h2>
+          <p class="lead-description">{featured.data.description}</p>
+          <p class="lead-meta">
+            <time datetime={featured.data.pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(featured.data.pubDate)}>{formatDate(featured.data.pubDate)}</time>
+            <span aria-hidden="true">/</span>
+            <span>{readingMinutes(featured.body)} 分钟阅读</span>
+          </p>
+        </article>
+      )}
+
+      <div class="publication-feed">
+        <div class="feed-heading">
+          <h2 class="publication-label">最近文章</h2>
+          <a href={pathTo('posts/')}>全部文章</a>
+        </div>
+        {recent.length > 0 ? (
+          <ul class="feed-list" role="list">
+            {recent.map((post) => (
+              <li>
+                <a class="feed-entry blue-hover" href={pathTo(`posts/${encodeURIComponent(post.id)}/`)}>
+                  <h3>{post.data.title}</h3>
+                  <time datetime={post.data.pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(post.data.pubDate)}>{formatDate(post.data.pubDate)}</time>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="feed-empty">更多文章会陆续发布。</p>
+        )}
+      </div>
+    </section>
+  </div>
+</BaseLayout>

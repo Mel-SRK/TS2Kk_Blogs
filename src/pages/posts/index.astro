@@ -1,0 +1,244 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { accessibleDate, formatDate, getPosts, readingMinutes } from '../../lib/posts';
+import { pathTo } from '../../lib/site';
+import '../../styles/reading.css';
+
+const posts = await getPosts();
+const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a, b) =>
+  a.localeCompare(b, 'zh-CN'),
+);
+---
+
+<BaseLayout title="文章归档" description="按主题查找 TS2Kk 的技术笔记、学习记录和随笔。" active="posts">
+  <div class="container reading-page archive-page">
+    <header class="reading-heading">
+      <h1>文章归档</h1>
+    </header>
+
+    <section class="archive" data-archive aria-label="文章列表">
+      {posts.length > 0 ? (
+        <>
+          <div class="archive-controls" data-archive-controls hidden>
+            <search class="archive-search">
+              <label class="reading-visually-hidden" for="article-query">搜索文章</label>
+              <div class="archive-search-field">
+                <span aria-hidden="true"></span>
+                <input id="article-query" type="search" placeholder="搜索标题、摘要或标签" autocomplete="off" />
+              </div>
+            </search>
+            <div class="archive-categories" aria-label="按分类筛选" role="group" data-archive-categories>
+              <span class="archive-ink" aria-hidden="true" data-archive-ink></span>
+              <button type="button" data-category="" aria-pressed="true">全部</button>
+              {categories.map((category) => (
+                <button type="button" data-category={category} aria-pressed="false">{category}</button>
+              ))}
+            </div>
+          </div>
+
+          <p class="archive-count" aria-live="polite" aria-atomic="true" data-archive-status>
+            共 {posts.length} 篇文章
+          </p>
+          <ul class="archive-list" role="list">
+            {posts.map((post) => {
+              const { title, description, pubDate, category, tags } = post.data;
+
+              return (
+                <li data-post data-post-category={category} data-post-search={[title, description, category, ...tags].join(' ')}>
+                  <article class="archive-entry blue-hover">
+                    <time class="archive-date" datetime={pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(pubDate)}>{formatDate(pubDate)}</time>
+                    <div class="archive-summary">
+                      <h2><a href={pathTo(`posts/${encodeURIComponent(post.id)}/`)}>{title}</a></h2>
+                      <p>{description}</p>
+                    </div>
+                    <div class="archive-details">
+                      <span class="reading-category">{category}</span>
+                      <span>{readingMinutes(post.body)} 分钟阅读</span>
+                    </div>
+                  </article>
+                </li>
+              );
+            })}
+          </ul>
+          <div class="archive-empty" data-archive-empty hidden>
+            <p>没有找到匹配的文章。</p>
+            <button class="reading-button" type="button" data-archive-reset>清除筛选</button>
+          </div>
+        </>
+      ) : (
+        <p>文章发布后会显示在这里。</p>
+      )}
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .archive-page {
+    padding-block-start: clamp(1.6rem, 4vw, 3rem);
+  }
+
+  .archive-page .reading-heading {
+    margin-block-end: clamp(1.15rem, 3vw, 2rem);
+  }
+
+  .archive-page .reading-heading h1 {
+    font-size: clamp(2rem, 4vw, 3.35rem);
+  }
+</style>
+
+<script>
+  const archive = document.querySelector('[data-archive]');
+  const controls = archive?.querySelector<HTMLElement>('[data-archive-controls]');
+  const input = archive?.querySelector<HTMLInputElement>('#article-query');
+  const status = archive?.querySelector('[data-archive-status]');
+  const results = archive?.querySelectorAll<HTMLElement>('[data-post]');
+  const empty = archive?.querySelector<HTMLElement>('[data-archive-empty]');
+  const buttons = [...(archive?.querySelectorAll<HTMLButtonElement>('[data-category]') ?? [])];
+  const reset = archive?.querySelector('[data-archive-reset]');
+  const categoryGroup = archive?.querySelector<HTMLElement>('[data-archive-categories]');
+  const ink = categoryGroup?.querySelector<HTMLElement>('[data-archive-ink]');
+
+  if (controls && input && status && results && empty) {
+    let category = '';
+    let inkAnimation: Animation | undefined;
+    let rowAnimations: Animation[] = [];
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+    const easing = getComputedStyle(document.documentElement).getPropertyValue('--cobalt-ease').trim() || 'ease-in-out';
+    const supportsAnimation = typeof Element.prototype.animate === 'function';
+
+    function normalize(value: string) {
+      return value.normalize('NFKC').toLocaleLowerCase('zh-CN');
+    }
+
+    const posts = Array.from(results, (element) => ({
+      element,
+      search: normalize(element.dataset.postSearch ?? ''),
+      category: element.dataset.postCategory,
+    }));
+
+    function positionInk(animate = false) {
+      const active = buttons.find((button) => button.getAttribute('aria-pressed') === 'true');
+      if (!categoryGroup || !ink || !active) return;
+
+      const group = categoryGroup.getBoundingClientRect();
+      const target = active.getBoundingClientRect();
+      if (!target.width || !target.height) return;
+
+      const width = `${target.width}px`;
+      const height = `${target.height}px`;
+      const end = `translate(${target.left - group.left}px, ${target.top - group.top}px)`;
+      if (ink.style.width === width && ink.style.height === height && ink.style.transform === end) return;
+
+      const previous = categoryGroup.dataset.ink === 'ready' && animate ? ink.getBoundingClientRect() : undefined;
+      inkAnimation?.cancel();
+      ink.style.width = width;
+      ink.style.height = height;
+      ink.style.transform = end;
+      categoryGroup.dataset.ink = 'ready';
+
+      if (previous) {
+        const start = `translate(${previous.left - group.left}px, ${previous.top - group.top}px) scale(${previous.width / target.width}, ${previous.height / target.height})`;
+        inkAnimation = ink.animate([{ transform: start }, { transform: end }], { duration: 310, easing });
+      }
+    }
+
+    function selectCategory(selected: string, move = false) {
+      category = selected;
+
+      for (const button of buttons) {
+        button.setAttribute('aria-pressed', String(button.dataset.category === category));
+      }
+
+      positionInk(move && supportsAnimation && !reducedMotion.matches);
+    }
+
+    const updateResults = (search: string, categoryChanged = false) => {
+      const terms = normalize(search.trim()).split(/\s+/u).filter(Boolean);
+      const animate = categoryChanged && supportsAnimation && !reducedMotion.matches;
+      const visible: HTMLElement[] = [];
+      let visibleCount = 0;
+
+      for (const animation of rowAnimations) animation.cancel();
+      rowAnimations = [];
+
+      for (const post of posts) {
+        const matchingCategory = !category || category === post.category;
+        const matches = matchingCategory && terms.every((term) => post.search.includes(term));
+        post.element.hidden = !matches;
+        if (matches) {
+          visibleCount += 1;
+          if (animate && visible.length < 6) visible.push(post.element);
+        }
+      }
+
+      status.textContent = `共 ${visibleCount} 篇文章`;
+      empty.hidden = visibleCount > 0;
+
+      rowAnimations = visible.map((element, index) => element.animate(
+        [{ opacity: .6, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 210, delay: index * 22, easing, fill: 'backwards' },
+      ));
+    };
+
+    const readFilters = () => {
+      const params = new URLSearchParams(window.location.search);
+      const requestedCategory = params.get('category') ?? '';
+
+      selectCategory(buttons.some((button) => button.dataset.category === requestedCategory)
+        ? requestedCategory
+        : '');
+
+      input.value = params.get('q') ?? '';
+      updateResults(input.value);
+    };
+
+    function saveFilters(search: string, categoryChanged = false) {
+      const url = new URL(window.location.href);
+      const query = search.trim();
+
+      if (query) url.searchParams.set('q', query);
+      else url.searchParams.delete('q');
+
+      if (category) url.searchParams.set('category', category);
+      else url.searchParams.delete('category');
+
+      window.history.replaceState(window.history.state, '', url);
+      updateResults(query, categoryChanged);
+    }
+
+    input.addEventListener('input', () => saveFilters(input.value));
+    for (const button of buttons) {
+      button.addEventListener('click', () => {
+        const selectedCategory = button.dataset.category ?? '';
+        if (category === selectedCategory) return;
+        selectCategory(selectedCategory, true);
+        saveFilters(input.value, true);
+      });
+    }
+
+    reset?.addEventListener('click', () => {
+      selectCategory('', true);
+      input.value = '';
+      saveFilters('', true);
+      input.focus();
+    });
+
+    window.addEventListener('popstate', readFilters);
+    controls.hidden = false;
+    readFilters();
+
+    if (categoryGroup && ink && typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(() => positionInk());
+      observer.observe(categoryGroup);
+      for (const button of buttons) observer.observe(button);
+    } else {
+      window.addEventListener('resize', () => positionInk());
+    }
+
+    reducedMotion.addEventListener('change', () => {
+      if (!reducedMotion.matches) return;
+      inkAnimation?.cancel();
+      for (const animation of rowAnimations) animation.cancel();
+    });
+  }
+</script>

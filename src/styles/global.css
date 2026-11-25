@@ -1,0 +1,403 @@
+@property --cobalt-fold-progress {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #121211;
+  --panel: #1c1c1a;
+  --text: #f2eee4;
+  --muted: #ada89e;
+  --accent: #bdc7ff;
+  --blue: #293dc9;
+  --blue-light: #8295ff;
+  --blue-wash: rgb(65 87 225 / .14);
+  --cobalt-slant: 34%;
+  --cobalt-cover: polygon(var(--cobalt-slant) 0, 100% 0, 100% 72%, 100% 100%, 0 100%, calc(var(--cobalt-slant) / 2) 50%);
+  --cobalt-tab: polygon(11% 0, 100% 0, 100% 72%, 86% 100%, 0 100%, 0 30%);
+  --cobalt-polygon: var(--cobalt-tab);
+  --cobalt-duration: 640ms;
+  --cobalt-ease: cubic-bezier(.45, 0, .55, 1);
+  --motion-ease: cubic-bezier(.18, .72, .26, 1);
+  --border: #33322e;
+  --strong-border: #53514a;
+  --container: 76rem;
+  --gutter: clamp(1rem, 4.5vw, 3rem);
+  --header-height: 4.2rem;
+  --font-body: "Geist Variable", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-display: "Space Grotesk Variable", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-reading: "Noto Serif CJK SC", "Songti SC", STSong, SimSun, Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
+:root:has(.cover-ink) {
+  --cobalt-polygon: var(--cobalt-cover);
+}
+
+:root[data-cobalt-motion="slide"] {
+  --cobalt-duration: 340ms;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 17.5rem;
+  scroll-padding-top: 1.5rem;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 1rem/1.65 var(--font-body);
+}
+
+main {
+  flex: 1;
+  min-width: 0;
+}
+
+::selection {
+  background: #bac7ff;
+  color: #101324;
+}
+
+a {
+  color: inherit;
+}
+
+:where(a, button, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+img {
+  max-width: 100%;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+.container {
+  width: min(var(--container), calc(100% - var(--gutter) - var(--gutter)));
+  margin-inline: auto;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 10;
+  inset: .75rem auto auto .75rem;
+  padding: .55rem 1rem;
+  transform: translateY(-150%);
+  background: var(--text);
+  color: var(--bg);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.header-inner {
+  min-height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: clamp(.55rem, 2.6vw, 2.05rem);
+}
+
+.site-header {
+  background: var(--bg);
+}
+
+.wordmark {
+  display: inline-flex;
+  min-width: max-content;
+  align-items: center;
+  gap: .625rem;
+  margin-inline-end: auto;
+  text-decoration: none;
+}
+
+.wordmark-name {
+  font: 690 1.28rem/1 var(--font-display);
+  letter-spacing: -.045em;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(.125rem, 1vw, .8rem);
+}
+
+.site-nav a, .rss-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: .25rem .35rem;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 535;
+  white-space: nowrap;
+}
+
+.site-nav a {
+  position: relative;
+  isolation: isolate;
+  padding-inline: 1.28rem .9rem;
+}
+
+.site-nav a:not(.is-active):is(:hover, :focus-visible),
+.rss-link:is(:hover, :focus-visible), .wordmark:is(:hover, :focus-visible) {
+  color: var(--accent);
+}
+
+.site-nav a.is-active {
+  color: var(--text);
+}
+
+.nav-blue {
+  position: absolute;
+  z-index: -1;
+  inset: .34rem 0;
+}
+
+.rss-link {
+  gap: .28rem;
+}
+
+.site-footer {
+  margin-top: clamp(2.5rem, 7vw, 5.5rem);
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+.footer-inner {
+  min-height: 4.7rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+  border-block-start: 1px solid var(--border);
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+}
+
+.footer-inner > a {
+  text-underline-offset: .24em;
+}
+
+.footer-inner > a:hover {
+  color: var(--accent);
+}
+
+.blue-hover {
+  position: relative;
+  isolation: isolate;
+}
+
+.blue-hover::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(102deg, var(--blue-wash), transparent 80%);
+  opacity: 0;
+  pointer-events: none;
+  transform: scaleX(.45);
+  transform-origin: left;
+}
+
+.blue-hover:is(:hover, :focus-within)::before {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+a.animated-underline {
+  text-decoration-color: color-mix(in srgb, currentColor 58%, transparent);
+}
+
+a.animated-underline:is(:hover, :focus-visible) {
+  text-decoration-color: var(--blue-light);
+  text-underline-offset: .34em;
+}
+
+.cobalt-shape {
+  background: var(--blue);
+  clip-path: var(--cobalt-polygon);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+
+  :where(a, button) {
+    transition: color 170ms ease, background-color 200ms ease, border-color 200ms ease;
+  }
+
+  .blue-hover::before {
+    transition: transform 330ms var(--motion-ease), opacity 200ms ease;
+  }
+
+  .animated-underline {
+    transition: color 170ms ease, text-decoration-color 170ms ease, text-underline-offset 210ms var(--motion-ease);
+  }
+
+  .cobalt-shape {
+    view-transition-name: cobalt;
+  }
+
+  .header-inner {
+    view-transition-name: header-content;
+  }
+
+  ::view-transition {
+    background: var(--bg);
+  }
+
+  ::view-transition-old(root) {
+    mix-blend-mode: normal;
+    animation: page-content-out 195ms cubic-bezier(.45, 0, .55, 1) both;
+  }
+
+  ::view-transition-new(root) {
+    mix-blend-mode: normal;
+    animation: page-content-in 305ms var(--motion-ease) 73ms both;
+  }
+
+  ::view-transition-old(cover-foreground) {
+    animation: page-content-out 220ms cubic-bezier(.45, 0, .55, 1) both;
+  }
+
+  ::view-transition-new(cover-foreground) {
+    animation: page-content-in 380ms var(--motion-ease) 115ms both;
+  }
+
+  ::view-transition-group(cobalt) {
+    z-index: 1;
+    animation-duration: var(--cobalt-duration);
+    animation-timing-function: var(--cobalt-ease);
+  }
+
+  /* Paint one solid shape as the browser interpolates its position and size. */
+  :root:has(.cobalt-shape)::view-transition-image-pair(cobalt) {
+    background: var(--blue);
+    clip-path: var(--cobalt-polygon);
+  }
+
+  :root[data-cobalt-motion="fold"]:has(.cobalt-shape)::view-transition-image-pair(cobalt),
+  :root[data-cobalt-motion="expand"]::view-transition-image-pair(cobalt) {
+    /* The crease peaks halfway and is flat at both resting shapes. */
+    --fold-depth: max(0, sin(var(--cobalt-fold-progress) * 180deg));
+    --fold-top-left: calc(var(--cobalt-slant) + (11% - var(--cobalt-slant)) * var(--cobalt-fold-progress) + 16% * var(--fold-depth));
+    --fold-bottom-right: calc(100% - 14% * var(--cobalt-fold-progress) - 9% * var(--fold-depth));
+    --fold-left-edge: calc(var(--cobalt-slant) / 2 * (1 - var(--cobalt-fold-progress)));
+    clip-path: polygon(
+      var(--fold-top-left) calc(5% * var(--fold-depth)),
+      100% calc(13% * var(--fold-depth)),
+      calc(100% - 6% * var(--fold-depth)) calc(72% - 12% * var(--fold-depth)),
+      var(--fold-bottom-right) calc(100% - 6% * var(--fold-depth)),
+      0 100%,
+      var(--fold-left-edge) calc(50% - 20% * var(--cobalt-fold-progress) + 12% * var(--fold-depth))
+    );
+    transform: translateY(calc(-1.3rem * var(--fold-depth))) rotate(calc(-5deg * var(--fold-depth)));
+    background: linear-gradient(
+      118deg,
+      color-mix(in srgb, var(--blue), #7493ff calc(52% * var(--fold-depth))) 0%,
+      color-mix(in srgb, var(--blue), #7493ff calc(22% * var(--fold-depth))) 53%,
+      var(--blue) 53%
+    );
+    animation: cobalt-fold var(--cobalt-duration) var(--cobalt-ease) both;
+  }
+
+  :root[data-cobalt-motion="expand"]::view-transition-image-pair(cobalt) {
+    animation-direction: reverse;
+  }
+
+  :root:has(.cobalt-shape)::view-transition-old(cobalt),
+  :root:has(.cobalt-shape)::view-transition-new(cobalt) {
+    display: none;
+  }
+
+  ::view-transition-group(cover-foreground) {
+    z-index: 2;
+  }
+
+  ::view-transition-group(header-content) {
+    z-index: 3;
+  }
+
+  ::view-transition-old(header-content) {
+    display: none;
+  }
+
+  ::view-transition-new(header-content) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+}
+
+@keyframes cobalt-fold {
+  from { --cobalt-fold-progress: 0; }
+  to { --cobalt-fold-progress: 1; }
+}
+
+@keyframes page-content-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-.35rem); }
+}
+
+@keyframes page-content-in {
+  from { opacity: 0; transform: translateY(.55rem); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --cobalt-slant: 46%;
+  }
+}
+
+@media (max-width: 42rem) {
+  :root {
+    --header-height: 4rem;
+  }
+
+  .header-inner {
+    gap: clamp(.2rem, 2vw, .85rem);
+  }
+}
+
+@media (max-width: 29rem) {
+  .wordmark-name {
+    font-size: 1.15rem;
+  }
+
+  .site-nav a {
+    padding-inline: 1.1rem .72rem;
+  }
+
+  .rss-link {
+    min-width: 2rem;
+    justify-content: center;
+  }
+
+  .rss-link span {
+    display: none;
+  }
+}

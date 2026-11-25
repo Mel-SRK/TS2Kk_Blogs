@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { pathTo } from '../lib/site';
+import '../styles/reading.css';
+---
+
+<BaseLayout title="页面未找到" noindex>
+  <div class="container reading-page reading-not-found">
+    <header class="reading-heading">
+      <p class="error-status">404</p>
+      <h1>页面未找到</h1>
+      <p>你可以在文章归档里按标题或分类查找。</p>
+    </header>
+    <div class="about-links">
+      <a class="reading-button" href={pathTo('posts/')}>浏览文章</a>
+      <a class="reading-button reading-button-secondary" href={pathTo()}>返回首页</a>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,89 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { pathTo, siteProfile } from '../lib/site';
+import '../styles/reading.css';
+---
+
+<BaseLayout title="关于我" active="about">
+  <div class="container reading-page about-page">
+    <header class="reading-heading about-heading">
+      <img
+        class="about-portrait"
+        src={pathTo(siteProfile.avatar)}
+        alt=""
+        width="960"
+        height="960"
+        decoding="async"
+      />
+      <div>
+        <h1>关于 {siteProfile.name}</h1>
+        <p class="about-topics">{siteProfile.bio}</p>
+      </div>
+    </header>
+
+    <div class="reading-prose about-prose">
+      <p>我在这里写技术文章，也会整理做过的 CTF 题。题解来自我的 Obsidian 笔记，以 Pwn 为主，也有逆向、Web 和密码学。</p>
+
+      <nav class="about-links about-contact" aria-label="联系方式">
+        <a class="reading-button animated-underline" href={siteProfile.githubUrl}>GitHub @{siteProfile.githubHandle}</a>
+        <a class="reading-button animated-underline" href={`mailto:${siteProfile.email}`}>{siteProfile.email}</a>
+      </nav>
+
+      <nav class="about-links" aria-label="阅读与订阅">
+        <a class="reading-button" href={pathTo('posts/')}>全部文章</a>
+        <a class="reading-button" href={`${pathTo('posts/')}?category=${encodeURIComponent('技术')}`}>技术博客</a>
+        <a class="reading-button" href={pathTo('posts/?category=Write-ups')}>CTF 题解</a>
+        <a class="reading-button reading-button-secondary" href={pathTo('rss.xml')}>订阅 RSS</a>
+      </nav>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .about-page {
+    max-width: 44rem;
+  }
+
+  .about-heading {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 4vw, 2rem);
+    margin-block-end: 1.8rem;
+  }
+
+  .about-heading h1 {
+    font-size: clamp(1.8rem, 5vw, 3.3rem);
+    text-wrap: pretty;
+  }
+
+  .about-topics {
+    margin: .4rem 0 0;
+    color: var(--muted);
+  }
+
+  .about-portrait {
+    display: block;
+    flex: none;
+    width: clamp(4rem, 13vw, 6.75rem);
+    height: auto;
+    border-radius: 50%;
+    background: var(--panel);
+    box-shadow: 0 0 0 1px var(--strong-border);
+  }
+
+  .about-prose {
+    padding-block-start: 1.55rem;
+    border-block-start: 1px solid var(--border);
+  }
+
+  .about-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.35rem;
+    font-family: var(--font-body);
+  }
+
+  .about-contact {
+    margin-block-end: .5rem;
+  }
+</style>

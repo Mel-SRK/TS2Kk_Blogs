@@ -1,0 +1,108 @@
+---
+import '@fontsource-variable/geist';
+import '@fontsource-variable/space-grotesk';
+import '../styles/global.css';
+import { pathTo, siteDescription, siteName, siteProfile } from '../lib/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  active?: 'home' | 'posts' | 'about';
+  cover?: string;
+  noindex?: boolean;
+}
+
+const { title, description = siteDescription, active, cover, noindex = false } = Astro.props;
+const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined;
+const socialImage = Astro.site ? new URL(cover ?? pathTo(siteProfile.avatar), Astro.site) : undefined;
+const links = [
+  { key: 'posts', label: '文章', href: pathTo('posts/') },
+  { key: 'about', label: '关于', href: pathTo('about/') },
+];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121211" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    {canonical && !noindex && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content={cover ? 'article' : 'website'} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {canonical && !noindex && <meta property="og:url" content={canonical} />}
+    {socialImage && <meta property="og:image" content={socialImage} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href={pathTo('favicon.svg')} type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={siteName} href={pathTo('rss.xml')} />
+    <script define:vars={{ isHome: active === 'home', homePath: pathTo() }}>
+      const root = document.documentElement;
+      const canAnimateCover = isHome && typeof window.CSS?.registerProperty === 'function';
+
+      if ('onpagereveal' in window) {
+        window.addEventListener('pagereveal', (event) => {
+          if (!event.viewTransition) {
+            if (canAnimateCover) root.classList.add('cover-arrival');
+            return;
+          }
+
+          if (isHome) {
+            root.dataset.cobaltMotion = 'expand';
+            return;
+          }
+
+          const sourceUrl = Reflect.get(window, 'navigation')?.activation?.from?.url || document.referrer;
+          const source = sourceUrl && new URL(sourceUrl);
+          root.dataset.cobaltMotion = source && source.origin === location.origin && source.pathname === homePath
+            ? 'fold'
+            : 'slide';
+        });
+      } else if (canAnimateCover) {
+        root.classList.add('cover-arrival');
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="wordmark" href={pathTo()} aria-label="TS2Kk Blog 首页" aria-current={active === 'home' ? 'page' : undefined}>
+          <span class="wordmark-name">TS2Kk</span>
+        </a>
+        <nav class="site-nav" aria-label="主导航">
+          {links.map(({ key, href, label }) => (
+            <a href={href} class:list={{ 'is-active': active === key }} aria-current={active === key ? (Astro.url.pathname === href ? 'page' : 'location') : undefined}>
+              {active === key && <span class="nav-blue cobalt-shape" aria-hidden="true"></span>}
+              {label}
+            </a>
+          ))}
+        </nav>
+        <a class="rss-link" href={pathTo('rss.xml')} aria-label="RSS 订阅">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none">
+            <circle cx="4" cy="16" r="1.35" fill="currentColor" />
+            <path d="M3.6 10a6.4 6.4 0 0 1 6.4 6.4M3.6 4.5a11.9 11.9 0 0 1 11.9 11.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <span>RSS</span>
+        </a>
+      </div>
+    </header>
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <span>© {new Date().getUTCFullYear()} TS2Kk Blog</span>
+        </div>
+        <a href={pathTo('rss.xml')}>RSS 订阅</a>
+      </div>
+    </footer>
+  </body>
+</html>
