@@ -10,20 +10,18 @@
 }
 
 .cover-stage {
-  --ink-start: 42%;
-  --ink-span: .58;
   --poster-slant: 24%;
   --poster-duration: 890ms;
   --poster-ease: cubic-bezier(.56, .05, .22, 1);
   position: relative;
   isolation: isolate;
-  height: clamp(25rem, 42vw, 34rem);
+  height: var(--cover-height);
   overflow: hidden;
 }
 
 .cover-ink {
   position: absolute;
-  inset: 0 0 0 var(--ink-start);
+  inset: 0 0 0 var(--cover-ink-start);
 }
 
 .cover-foreground {
@@ -41,8 +39,8 @@
   }
 
   .cover-arrival .cover-ink {
-    --ink-top: clamp(var(--cobalt-slant), calc((var(--poster-edge) - var(--ink-start)) / var(--ink-span)), 100%);
-    --ink-bottom: clamp(0%, calc((var(--poster-edge) - var(--poster-slant) - var(--ink-start)) / var(--ink-span)), 100%);
+    --ink-top: clamp(var(--cobalt-slant), calc((var(--poster-edge) - var(--cover-ink-start)) / var(--cover-ink-span)), 100%);
+    --ink-bottom: clamp(0%, calc((var(--poster-edge) - var(--poster-slant) - var(--cover-ink-start)) / var(--cover-ink-span)), 100%);
     clip-path: polygon(
       var(--ink-top) 0,
       100% 0,
@@ -330,10 +328,7 @@
 
 @media (max-width: 700px) {
   .cover-stage {
-    --ink-start: 16%;
-    --ink-span: .84;
     --poster-slant: 27%;
-    height: clamp(21rem, 108vw, 31rem);
   }
 
   .cover-stage h1 {

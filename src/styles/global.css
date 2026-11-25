@@ -20,6 +20,9 @@
   --cobalt-polygon: var(--cobalt-tab);
   --cobalt-duration: 640ms;
   --cobalt-ease: cubic-bezier(.45, 0, .55, 1);
+  --cover-height: clamp(25rem, 42vw, 34rem);
+  --cover-ink-start: 42%;
+  --cover-ink-span: .58;
   --motion-ease: cubic-bezier(.18, .72, .26, 1);
   --border: #33322e;
   --strong-border: #53514a;
@@ -387,6 +390,9 @@ a.animated-underline:is(:hover, :focus-visible) {
 @media (max-width: 700px) {
   :root {
     --cobalt-slant: 46%;
+    --cover-height: clamp(21rem, 108vw, 31rem);
+    --cover-ink-start: 16%;
+    --cover-ink-span: .84;
   }
 }
 

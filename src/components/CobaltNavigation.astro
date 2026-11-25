@@ -1,7 +1,11 @@
 ---
 import { pathTo } from '../lib/site';
 
-const { isHome } = Astro.props as { isHome: boolean };
+interface Props {
+  isHome: boolean;
+}
+
+const { isHome } = Astro.props;
 const homePath = pathTo();
 const navPaths = [homePath, pathTo('posts/'), pathTo('about/')];
 ---
@@ -10,95 +14,123 @@ const navPaths = [homePath, pathTo('posts/'), pathTo('about/')];
 <script define:vars={{ isHome, homePath, navPaths }}>
   const root = document.documentElement;
   const motion = matchMedia('(prefers-reduced-motion: no-preference)');
-  const storageKey = 'ts2kk-cobalt-handoff';
+  const nativeNavigation = 'CSSViewTransitionRule' in window && 'onpageswap' in window && 'onpagereveal' in window;
 
-  function takeHandoff() {
-    try {
-      const saved = sessionStorage.getItem(storageKey);
-      sessionStorage.removeItem(storageKey);
-      const handoff = saved && JSON.parse(saved);
-      if (handoff?.href === location.href && handoff.expires > Date.now()) return handoff;
-    } catch {
-      // Normal links and the resting blue shape also work without storage.
-    }
+  function openCover() {
+    if (!isHome || !motion.matches || typeof window.CSS?.registerProperty !== 'function') return;
+    const referrer = document.referrer && new URL(document.referrer);
+    if (referrer && referrer.origin === location.origin && referrer.pathname !== homePath && referrer.pathname.startsWith(homePath)) return;
+    if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') return;
+    root.classList.add('cover-arrival');
   }
 
-  function playHandoff(handoff) {
-    const shape = document.querySelector('.cobalt-shape');
-    if (!motion.matches || !handoff || !shape || !shape.animate) return false;
-
-    const from = handoff.rect;
-    const to = shape.getBoundingClientRect();
-    if (!from?.width || !from.height || !to.width || !to.height) return false;
-
-    const traveler = document.createElement('div');
-    traveler.className = 'cobalt-traveler';
-    traveler.setAttribute('aria-hidden', 'true');
-    Object.assign(traveler.style, {
-      left: `${to.x}px`, top: `${to.y}px`, width: `${to.width}px`, height: `${to.height}px`,
-    });
-
-    root.classList.remove('cover-arrival');
-    root.classList.add('cobalt-traveling');
-    document.body.append(traveler);
-    const movement = traveler.animate([
-      {
-        transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.width / to.width}, ${from.height / to.height})`,
-        clipPath: handoff.clip,
-      },
-      { transform: 'none', clipPath: getComputedStyle(shape).clipPath },
-    ], {
-      duration: isHome || handoff.fromHome ? 640 : 340,
-      easing: 'cubic-bezier(.45, 0, .55, 1)',
-      fill: 'both',
-    });
-    const settle = () => {
-      traveler.remove();
-      root.classList.remove('cobalt-traveling');
-    };
-    movement.finished.then(settle, settle);
-    return true;
-  }
-
-  function reveal(viewTransition) {
-    const handoff = takeHandoff();
-    if (viewTransition) {
+  if (nativeNavigation) {
+    window.addEventListener('pagereveal', (event) => {
+      if (!event.viewTransition) {
+        openCover();
+        return;
+      }
       const sourceUrl = Reflect.get(window, 'navigation')?.activation?.from?.url || document.referrer;
       const source = sourceUrl && new URL(sourceUrl);
       root.dataset.cobaltMotion = isHome ? 'expand'
         : source && source.origin === location.origin && source.pathname === homePath ? 'fold' : 'slide';
-      viewTransition.ready.catch(() => playHandoff(handoff));
-    } else if (!playHandoff(handoff) && isHome && motion.matches && typeof window.CSS?.registerProperty === 'function') {
-      root.classList.add('cover-arrival');
-    }
-  }
-
-  if ('onpagereveal' in window) {
-    window.addEventListener('pagereveal', (event) => reveal(event.viewTransition));
+    });
   } else {
-    document.addEventListener('DOMContentLoaded', () => reveal(), { once: true });
-  }
+    // The initial poster needs its class before the browser builds the first frame.
+    openCover();
 
-  document.addEventListener('click', (event) => {
-    if (!motion.matches || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const link = event.target?.closest?.('a[href]');
-    if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
-    const destination = new URL(link.href);
-    if (destination.origin !== location.origin || destination.pathname === location.pathname || !navPaths.includes(destination.pathname)) return;
+    const prefetched = new Set();
+    let departure;
 
-    const shape = document.querySelector('.cobalt-traveler') || document.querySelector('.cobalt-shape');
-    if (!shape || !shape.animate) return;
-    const { x, y, width, height } = shape.getBoundingClientRect();
-    try {
-      sessionStorage.setItem(storageKey, JSON.stringify({
-        href: destination.href,
-        expires: Date.now() + 15_000,
-        fromHome: isHome,
-        rect: { x, y, width, height },
-        clip: getComputedStyle(shape).clipPath,
-      }));
-    } catch {
-      // Storage may be disabled in a private browsing context.
+    function clearDeparture() {
+      departure?.movement.cancel();
+      departure?.traveler.remove();
+      departure = undefined;
+      root.classList.remove('cobalt-traveling');
     }
-  });
+
+    function targetStyle(pathname) {
+      if (pathname === homePath) {
+        const header = document.querySelector('.header-inner').getBoundingClientRect();
+        const inkStart = parseFloat(getComputedStyle(root).getPropertyValue('--cover-ink-start')) / 100;
+        return {
+          left: `${header.left + header.width * inkStart}px`, top: `${header.bottom + scrollY}px`,
+          width: `${header.width * (1 - inkStart)}px`, height: 'var(--cover-height)', clipPath: 'var(--cobalt-cover)',
+        };
+      }
+
+      const tab = [...document.querySelectorAll('.site-nav a')].find((link) => link.pathname === pathname);
+      if (!tab) return;
+      const marker = document.createElement('span');
+      marker.className = 'nav-blue';
+      tab.append(marker);
+      const { x, y, width, height } = marker.getBoundingClientRect();
+      marker.remove();
+      return {
+        left: `${x}px`, top: `${y + scrollY}px`, width: `${width}px`, height: `${height}px`, clipPath: 'var(--cobalt-tab)',
+      };
+    }
+
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) clearDeparture();
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!motion.matches || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target?.closest?.('a[href]');
+      if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+      const destination = new URL(link.href);
+      if (destination.origin !== location.origin || destination.hash || destination.pathname === location.pathname || !navPaths.includes(destination.pathname)) return;
+      if (departure?.movement.playState === 'finished') return;
+      if (!departure && document.querySelector('.site-nav .is-active')?.pathname === destination.pathname) return;
+
+      const shape = departure?.traveler ?? document.querySelector('.cobalt-shape');
+      if (!shape?.animate) return;
+      const from = shape.getBoundingClientRect();
+      if (!from.width || !from.height || from.bottom <= 0 || from.top >= innerHeight) return;
+      const clip = getComputedStyle(shape).clipPath;
+      const target = targetStyle(destination.pathname);
+      if (!target) return;
+
+      const traveler = document.createElement('div');
+      traveler.className = 'cobalt-traveler';
+      traveler.setAttribute('aria-hidden', 'true');
+      Object.assign(traveler.style, target);
+      document.body.append(traveler);
+      const to = traveler.getBoundingClientRect();
+      if (!to.width || !to.height) {
+        traveler.remove();
+        return;
+      }
+
+      event.preventDefault();
+      clearDeparture();
+      root.classList.add('cobalt-traveling');
+      const movement = traveler.animate([
+        {
+          transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.width / to.width}, ${from.height / to.height})`,
+          clipPath: clip,
+        },
+        { transform: 'none', clipPath: getComputedStyle(traveler).clipPath },
+      ], {
+        duration: isHome || destination.pathname === homePath ? 480 : 290,
+        easing: 'cubic-bezier(.45, 0, .55, 1)',
+        fill: 'both',
+      });
+      departure = { traveler, movement };
+
+      if (!prefetched.has(destination.href)) {
+        prefetched.add(destination.href);
+        const hint = document.createElement('link');
+        hint.rel = 'prefetch';
+        hint.href = destination.href;
+        document.head.append(hint);
+      }
+
+      // Hold the exact destination shape on the old page while the link loads.
+      movement.finished.then(() => {
+        if (departure?.movement === movement) location.assign(destination.href);
+      }, () => {});
+    });
+  }
 </script>
