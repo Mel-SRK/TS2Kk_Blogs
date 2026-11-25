@@ -266,6 +266,23 @@ a.animated-underline:is(:hover, :focus-visible) {
     view-transition-name: header-content;
   }
 
+  .cobalt-traveler {
+    position: fixed;
+    z-index: 1;
+    background: var(--blue);
+    pointer-events: none;
+    transform-origin: top left;
+  }
+
+  .cobalt-traveling .cobalt-shape {
+    visibility: hidden;
+  }
+
+  .cobalt-traveling .header-inner {
+    position: relative;
+    z-index: 3;
+  }
+
   ::view-transition {
     background: var(--bg);
   }

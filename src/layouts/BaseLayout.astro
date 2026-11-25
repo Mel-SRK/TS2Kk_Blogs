@@ -1,6 +1,7 @@
 ---
 import '@fontsource-variable/geist';
 import '@fontsource-variable/space-grotesk';
+import CobaltNavigation from '../components/CobaltNavigation.astro';
 import '../styles/global.css';
 import { pathTo, siteDescription, siteName, siteProfile } from '../lib/site';
 
@@ -42,32 +43,7 @@ const links = [
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href={pathTo('favicon.svg')} type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={siteName} href={pathTo('rss.xml')} />
-    <script define:vars={{ isHome: active === 'home', homePath: pathTo() }}>
-      const root = document.documentElement;
-      const canAnimateCover = isHome && typeof window.CSS?.registerProperty === 'function';
-
-      if ('onpagereveal' in window) {
-        window.addEventListener('pagereveal', (event) => {
-          if (!event.viewTransition) {
-            if (canAnimateCover) root.classList.add('cover-arrival');
-            return;
-          }
-
-          if (isHome) {
-            root.dataset.cobaltMotion = 'expand';
-            return;
-          }
-
-          const sourceUrl = Reflect.get(window, 'navigation')?.activation?.from?.url || document.referrer;
-          const source = sourceUrl && new URL(sourceUrl);
-          root.dataset.cobaltMotion = source && source.origin === location.origin && source.pathname === homePath
-            ? 'fold'
-            : 'slide';
-        });
-      } else if (canAnimateCover) {
-        root.classList.add('cover-arrival');
-      }
-    </script>
+    <CobaltNavigation isHome={active === 'home'} />
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>

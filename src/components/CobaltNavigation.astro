@@ -1,0 +1,104 @@
+---
+import { pathTo } from '../lib/site';
+
+const { isHome } = Astro.props as { isHome: boolean };
+const homePath = pathTo();
+const navPaths = [homePath, pathTo('posts/'), pathTo('about/')];
+---
+
+<link rel="expect" href={isHome ? '#profile-name' : '#main'} blocking="render" media="(prefers-reduced-motion: no-preference)" />
+<script define:vars={{ isHome, homePath, navPaths }}>
+  const root = document.documentElement;
+  const motion = matchMedia('(prefers-reduced-motion: no-preference)');
+  const storageKey = 'ts2kk-cobalt-handoff';
+
+  function takeHandoff() {
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      sessionStorage.removeItem(storageKey);
+      const handoff = saved && JSON.parse(saved);
+      if (handoff?.href === location.href && handoff.expires > Date.now()) return handoff;
+    } catch {
+      // Normal links and the resting blue shape also work without storage.
+    }
+  }
+
+  function playHandoff(handoff) {
+    const shape = document.querySelector('.cobalt-shape');
+    if (!motion.matches || !handoff || !shape || !shape.animate) return false;
+
+    const from = handoff.rect;
+    const to = shape.getBoundingClientRect();
+    if (!from?.width || !from.height || !to.width || !to.height) return false;
+
+    const traveler = document.createElement('div');
+    traveler.className = 'cobalt-traveler';
+    traveler.setAttribute('aria-hidden', 'true');
+    Object.assign(traveler.style, {
+      left: `${to.x}px`, top: `${to.y}px`, width: `${to.width}px`, height: `${to.height}px`,
+    });
+
+    root.classList.remove('cover-arrival');
+    root.classList.add('cobalt-traveling');
+    document.body.append(traveler);
+    const movement = traveler.animate([
+      {
+        transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.width / to.width}, ${from.height / to.height})`,
+        clipPath: handoff.clip,
+      },
+      { transform: 'none', clipPath: getComputedStyle(shape).clipPath },
+    ], {
+      duration: isHome || handoff.fromHome ? 640 : 340,
+      easing: 'cubic-bezier(.45, 0, .55, 1)',
+      fill: 'both',
+    });
+    const settle = () => {
+      traveler.remove();
+      root.classList.remove('cobalt-traveling');
+    };
+    movement.finished.then(settle, settle);
+    return true;
+  }
+
+  function reveal(viewTransition) {
+    const handoff = takeHandoff();
+    if (viewTransition) {
+      const sourceUrl = Reflect.get(window, 'navigation')?.activation?.from?.url || document.referrer;
+      const source = sourceUrl && new URL(sourceUrl);
+      root.dataset.cobaltMotion = isHome ? 'expand'
+        : source && source.origin === location.origin && source.pathname === homePath ? 'fold' : 'slide';
+      viewTransition.ready.catch(() => playHandoff(handoff));
+    } else if (!playHandoff(handoff) && isHome && motion.matches && typeof window.CSS?.registerProperty === 'function') {
+      root.classList.add('cover-arrival');
+    }
+  }
+
+  if ('onpagereveal' in window) {
+    window.addEventListener('pagereveal', (event) => reveal(event.viewTransition));
+  } else {
+    document.addEventListener('DOMContentLoaded', () => reveal(), { once: true });
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!motion.matches || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target?.closest?.('a[href]');
+    if (!link || link.hasAttribute('download') || (link.target && link.target !== '_self')) return;
+    const destination = new URL(link.href);
+    if (destination.origin !== location.origin || destination.pathname === location.pathname || !navPaths.includes(destination.pathname)) return;
+
+    const shape = document.querySelector('.cobalt-traveler') || document.querySelector('.cobalt-shape');
+    if (!shape || !shape.animate) return;
+    const { x, y, width, height } = shape.getBoundingClientRect();
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify({
+        href: destination.href,
+        expires: Date.now() + 15_000,
+        fromHome: isHome,
+        rect: { x, y, width, height },
+        clip: getComputedStyle(shape).clipPath,
+      }));
+    } catch {
+      // Storage may be disabled in a private browsing context.
+    }
+  });
+</script>

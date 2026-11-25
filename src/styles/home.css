@@ -43,7 +43,14 @@
   .cover-arrival .cover-ink {
     --ink-top: clamp(var(--cobalt-slant), calc((var(--poster-edge) - var(--ink-start)) / var(--ink-span)), 100%);
     --ink-bottom: clamp(0%, calc((var(--poster-edge) - var(--poster-slant) - var(--ink-start)) / var(--ink-span)), 100%);
-    clip-path: polygon(var(--ink-top) 0, 100% 0, 100% 100%, var(--ink-bottom) 100%);
+    clip-path: polygon(
+      var(--ink-top) 0,
+      100% 0,
+      100% 72%,
+      100% 100%,
+      var(--ink-bottom) 100%,
+      calc((var(--ink-top) + var(--ink-bottom)) / 2) 50%
+    );
   }
 
   .cover-arrival .cover-stage::after {
@@ -70,6 +77,14 @@
 
   .cover-foreground {
     view-transition-name: cover-foreground;
+  }
+
+  .cobalt-traveling .cover-stage {
+    isolation: auto;
+  }
+
+  .cobalt-traveling .cover-foreground {
+    z-index: 2;
   }
 }
 
