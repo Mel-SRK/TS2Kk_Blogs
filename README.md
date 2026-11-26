@@ -1,47 +1,71 @@
 # TS2Kk Blog
 
-用 Astro 和 Markdown 构建的个人博客。文章保存在仓库中，GitHub Actions 将静态页面发布到 GitHub Pages。
+TS2Kk 的中文技术博客，记录二进制安全、逆向工程、Linux 和工具开发，也收录参加 CTF 时写下的题解。
 
-## 本地预览
+[在线阅读](https://mel-srk.github.io/TS2Kk_Blogs/) · [文章归档](https://mel-srk.github.io/TS2Kk_Blogs/posts/) · [关于作者](https://mel-srk.github.io/TS2Kk_Blogs/about/) · [RSS 订阅](https://mel-srk.github.io/TS2Kk_Blogs/rss.xml)
 
-安装 Node.js 24，然后在仓库根目录运行以下命令。终端会显示预览地址，通常是 `http://localhost:4321/`。
+[![TS2Kk Blog 首页，钴蓝色大卫石雕、刊头和作者简介](docs/screenshots/home.webp)](https://mel-srk.github.io/TS2Kk_Blogs/)
+
+## 浏览博客
+
+- [神舟2026 epitaph Writeup](https://mel-srk.github.io/TS2Kk_Blogs/posts/ctf-reverse-shen-zhou2026-epitaph/) 记录一道字节码虚拟机逆向题的分析和验证过程。
+- [SDB 调试器开发笔记](https://mel-srk.github.io/TS2Kk_Blogs/posts/sdb-debugger/) 从 Linux 进程跟踪讲起，记录如何用 C 写一个调试器。
+
+归档支持按标题、摘要、分类和标签搜索，也可以直接筛选分类。长文可通过目录跳转，文末可以继续查看相关文章。首页的钴蓝色背景在切页时收拢成导航选中块，转场会遵循系统的减少动态效果设置。
+
+| 文章归档 | 正文阅读 |
+| --- | --- |
+| [![文章归档筛选技术分类后的搜索框和文章列表](docs/screenshots/archive.webp)](docs/screenshots/archive.webp) | [![SDB 调试器开发笔记的正文和侧边目录](docs/screenshots/article.webp)](docs/screenshots/article.webp) |
+
+<details>
+<summary>移动端首页</summary>
+
+<p><img src="docs/screenshots/mobile.webp" width="340" alt="移动端首页的刊头、钴蓝色石雕和作者简介"></p>
+
+</details>
+
+## 本地运行
+
+项目用 Astro 将 Markdown 生成为静态页面。建议使用与部署工作流一致的 **Node.js 24**。
 
 ```sh
+git clone https://github.com/Mel-SRK/TS2Kk_Blogs.git
+cd TS2Kk_Blogs
 npm ci
 npm run dev
 ```
 
-用 `npm run check` 检查 Astro 页面与类型。`npm run build` 将站点输出到 `dist/`，`npm run preview` 可以预览这份构建产物。
+默认可在浏览器打开 `http://localhost:4321/`。提交前用 `npm run check` 检查 Astro 和 TypeScript，再用 `npm run build` 生成 `dist/`。运行 `npm run preview` 可以预览构建产物。
 
 ## 写文章
 
-在 `src/content/posts/` 新建一个 Markdown 文件。建议用小写英文和短横线命名，因为文件名会成为文章网址的一部分。
+在 [`src/content/posts/`](src/content/posts/) 新建 Markdown 文件。文件名会成为网址的一部分，例如 `linux-notes.md` 会生成 `/posts/linux-notes/`。
 
 ```markdown
 ---
-title: 我的第一篇文章
-description: 用一句话概括文章内容。
-pubDate: '2026-11-25'
-category: 随笔
-tags: [写作, 博客]
-cover: notebook
-featured: false
+title: Linux 调试笔记
+description: 记录这次排查的现象、判断和结果。
+pubDate: '2026-11-26'
+category: 技术
+tags: [Linux, 调试]
 ---
 
-在这里写正文。可以使用 Markdown 标题、列表、链接和代码块。
+## 问题背景
+
+在这里开始写正文。
 ```
 
-`cover` 默认为 `desk`，也可选 `observatory`、`terminal`、`notebook` 或 `signal`，用于文章分享预览。若想更换首页索引中置顶的精选文章，将新文章设为 `featured: true`，并取消上一篇的精选标记。`example: true` 的示例文章仍可从归档打开，首页的精选和最近文章会跳过它们。
+`title`、`description`、`pubDate` 和 `category` 必填。想更换首页精选时，给新文章加上 `featured: true`，再去掉旧文章的精选标记。分享封面可通过 `cover` 选择，有效值见 [文章字段定义](src/content.config.ts)。站点名、头像路径和作者信息都在 [`src/lib/site.ts`](src/lib/site.ts)。
 
 ## 发布到 GitHub Pages
 
-1. 在 GitHub 上创建博客仓库。使用 GitHub Free 时，Pages 适用于公开仓库。确认准备公开的文章、图片和文件后，再将本地改动提交并推送到默认分支 `main` 或 `master`。 [GitHub Pages 适用的仓库](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages)
-2. 打开仓库的 **Settings → Pages**，在 **Build and deployment → Source** 选择 **GitHub Actions**。 [配置发布源](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
-3. 打开 **Actions → Deploy to GitHub Pages**，选择默认分支并点击 **Run workflow**。发布成功后，工作流和 **Settings → Pages** 都会显示访问地址。之后推送到默认分支会自动更新站点。
+这个仓库在推送到 `main` 后自动发布。[部署工作流](.github/workflows/deploy.yml) 会安装依赖、运行检查、构建 `dist/`，再把生成的静态文件发布到 Pages。也可以在 [Actions](https://github.com/Mel-SRK/TS2Kk_Blogs/actions/workflows/deploy.yml) 手动运行。
 
-普通仓库的默认地址类似 `https://用户名.github.io/TS2Kk_Blogs/`。以 `用户名.github.io` 命名的个人站点仓库则发布到 `https://用户名.github.io/`。工作流会把 GitHub Pages 的实际地址传给 `SITE_URL`，由 Astro 处理域名和项目子路径。若在本地模拟项目子路径，可运行以下命令。
+在自己的仓库部署时，到 **Settings → Pages → Build and deployment**，将 **Source** 设为 **GitHub Actions**。工作流会把 Pages 提供的站点地址传给 Astro，构建时一并处理项目子路径。 [GitHub Pages 发布源设置](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site)
+
+需要在本机检查 Pages 的项目子路径时，可以用实际部署地址构建和预览。
 
 ```sh
-SITE_URL=https://example.github.io/TS2Kk_Blogs/ npm run build
-SITE_URL=https://example.github.io/TS2Kk_Blogs/ npm run preview
+SITE_URL=https://mel-srk.github.io/TS2Kk_Blogs/ npm run build
+SITE_URL=https://mel-srk.github.io/TS2Kk_Blogs/ npm run preview
 ```
