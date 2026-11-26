@@ -5,15 +5,98 @@ import '../styles/reading.css';
 ---
 
 <BaseLayout title="页面未找到" noindex>
-  <div class="container reading-page reading-not-found">
-    <header class="reading-heading">
-      <p class="error-status">404</p>
-      <h1>页面未找到</h1>
-      <p>你可以在文章归档里按标题或分类查找。</p>
-    </header>
-    <div class="about-links">
-      <a class="reading-button" href={pathTo('posts/')}>浏览文章</a>
-      <a class="reading-button reading-button-secondary" href={pathTo()}>返回首页</a>
-    </div>
+  <div class="container reading-page fault-page">
+    <section class="fault-panel" aria-labelledby="fault-title">
+      <dl class="fault-status" lang="en">
+        <div><dt>SIGNAL:</dt><dd>SIGSEGV (Segmentation fault)</dd></div>
+        <div><dt>STATUS:</dt><dd>0x00000404 // PAGE_NOT_MAPPED</dd></div>
+      </dl>
+      <div class="fault-body">
+        <header class="reading-heading fault-heading">
+          <h1 id="fault-title">页面未找到</h1>
+          <p>请求的地址未映射到任何文章或页面。你可以在文章归档里按标题或分类查找。</p>
+        </header>
+        <nav class="fault-actions" aria-label="继续浏览">
+          <a class="fault-action fault-primary" href={pathTo('posts/')}>浏览文章归档</a>
+          <a class="fault-action" href={pathTo()}>返回首页</a>
+        </nav>
+      </div>
+    </section>
   </div>
 </BaseLayout>
+
+<style>
+  .fault-page {
+    max-width: 45rem;
+  }
+
+  .fault-panel {
+    border: 1px solid var(--strong-border);
+    background: var(--surface);
+  }
+
+  .fault-status {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin: 0;
+    padding: clamp(.8rem, 3vw, 1.4rem) clamp(1rem, 4vw, 2rem);
+    border-block-end: 1px solid var(--border);
+    border-inline-start: 2px solid var(--warn);
+    background: var(--panel);
+    color: var(--muted);
+    font: 500 clamp(.75rem, 2vw, .875rem)/1.5 var(--font-mono);
+  }
+
+  .fault-status > div {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: .55rem;
+  }
+
+  .fault-status dt {
+    color: var(--warn);
+  }
+
+  .fault-status dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .fault-body {
+    padding: clamp(1rem, 4vw, 2rem);
+  }
+
+  .fault-heading {
+    margin-block-end: 1.5rem;
+  }
+
+  .fault-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+  }
+
+  .fault-action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: .4rem .8rem;
+    border: 1px solid var(--strong-border);
+    color: var(--muted);
+    font-size: .875rem;
+    text-decoration: none;
+  }
+
+  .fault-primary {
+    border-color: var(--blue-light);
+    background: var(--blue-wash);
+    color: var(--accent);
+  }
+
+  .fault-action:is(:hover, :focus-visible) {
+    border-color: var(--blue-light);
+    background: var(--elevated);
+    color: var(--text);
+  }
+</style>

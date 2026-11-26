@@ -8,6 +8,15 @@ const posts = await getPosts();
 const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a, b) =>
   a.localeCompare(b, 'zh-CN'),
 );
+const topics = ['PWN', 'Reverse', 'Linux', 'Crypto', 'Web'];
+const postsByYear = new Map<number, typeof posts>();
+
+for (const post of posts) {
+  const year = post.data.pubDate.getUTCFullYear();
+  const entries = postsByYear.get(year);
+  if (entries) entries.push(post);
+  else postsByYear.set(year, [post]);
+}
 ---
 
 <BaseLayout title="文章归档" description="按主题查找 TS2Kk 的技术笔记、学习记录和随笔。" active="posts">
@@ -25,6 +34,8 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
               <div class="archive-search-field">
                 <span aria-hidden="true"></span>
                 <input id="article-query" type="search" placeholder="搜索标题、摘要或标签" autocomplete="off" />
+                <kbd class="archive-search-kbd" aria-hidden="true">Ctrl+/</kbd>
+                <button class="archive-search-clear" type="button" aria-label="清除搜索词" data-archive-clear hidden>×</button>
               </div>
             </search>
             <div class="archive-categories" aria-label="按分类筛选" role="group" data-archive-categories>
@@ -34,32 +45,50 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
                 <button type="button" data-category={category} aria-pressed="false">{category}</button>
               ))}
             </div>
+            <div class="archive-topics" role="group" aria-label="按主题筛选" data-archive-topics>
+              {topics.map((topic) => (
+                <button class="archive-topic" type="button" data-tag={topic} aria-pressed="false">#{topic}</button>
+              ))}
+              <span class="archive-extra-topics" data-archive-extra-topics></span>
+              <template data-archive-topic-template>
+                <button class="archive-topic" type="button" aria-pressed="true"></button>
+              </template>
+            </div>
           </div>
 
+          <noscript><p class="archive-count">当前显示全部文章。搜索和筛选需要 JavaScript。</p></noscript>
           <p class="archive-count" aria-live="polite" aria-atomic="true" data-archive-status>
             共 {posts.length} 篇文章
           </p>
-          <ul class="archive-list" role="list">
-            {posts.map((post) => {
-              const { title, description, pubDate, category, tags } = post.data;
+          {[...postsByYear].map(([year, entries]) => (
+            <section class="archive-year" aria-labelledby={`archive-year-${year}`} data-archive-year>
+              <h2 class="archive-year-divider" id={`archive-year-${year}`}>{year}</h2>
+              <ul class="archive-list" role="list">
+                {entries.map((post) => {
+                  const { title, description, pubDate, category, tags } = post.data;
 
-              return (
-                <li data-post data-post-category={category} data-post-search={[title, description, category, ...tags].join(' ')}>
-                  <article class="archive-entry blue-hover">
-                    <time class="archive-date" datetime={pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(pubDate)}>{formatDate(pubDate)}</time>
-                    <div class="archive-summary">
-                      <h2><a href={pathTo(`posts/${encodeURIComponent(post.id)}/`)}>{title}</a></h2>
-                      <p>{description}</p>
-                    </div>
-                    <div class="archive-details">
-                      <span class="reading-category">{category}</span>
-                      <span>{readingMinutes(post.body)} 分钟阅读</span>
-                    </div>
-                  </article>
-                </li>
-              );
-            })}
-          </ul>
+                  return (
+                    <li data-post data-post-category={category} data-post-tags={JSON.stringify(tags)} data-post-search={[title, description, category, ...tags].join(' ')}>
+                      <article class="archive-entry blue-hover">
+                        <time class="archive-date" datetime={pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(pubDate)}>{formatDate(pubDate)}</time>
+                        <div class="archive-summary">
+                          <h3>
+                            <a href={pathTo(`posts/${encodeURIComponent(post.id)}/`)}>{title}</a>
+                            {tags.includes('待写') && <span class="archive-wip" title="未完成">WIP<span class="reading-visually-hidden">（未完成）</span></span>}
+                          </h3>
+                          <p>{description}</p>
+                        </div>
+                        <div class="archive-details">
+                          <span class="reading-category">{category}</span>
+                          <span>{readingMinutes(post.body)} 分钟阅读</span>
+                        </div>
+                      </article>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
           <div class="archive-empty" data-archive-empty hidden>
             <p>没有找到匹配的文章。</p>
             <button class="reading-button" type="button" data-archive-reset>清除筛选</button>
@@ -84,6 +113,196 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
   .archive-page .reading-heading h1 {
     font-size: clamp(2rem, 4vw, 3.35rem);
   }
+
+  .archive-search input {
+    appearance: none;
+    padding-inline-end: 4.25rem;
+  }
+
+  .archive-search input::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
+  .archive-search-kbd,
+  .archive-search-clear {
+    position: absolute;
+    inset-inline-end: .35rem;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .archive-search-kbd {
+    inset-inline-end: .65rem;
+    block-size: 1.45rem;
+    padding-inline: .3rem;
+    border: 1px solid var(--strong-border);
+    background: var(--elevated);
+    font-size: .75rem;
+    pointer-events: none;
+  }
+
+  .archive-search-clear {
+    inline-size: 2rem;
+    block-size: 2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+
+  .archive-search-clear:is(:hover, :focus-visible) {
+    background: var(--elevated);
+    color: var(--text);
+  }
+
+  .archive-search-kbd[hidden],
+  .archive-search-clear[hidden] {
+    display: none;
+  }
+
+  @media (pointer: coarse) {
+    .archive-search-kbd {
+      display: none;
+    }
+
+    .archive-search input {
+      padding-inline-end: 3.2rem;
+    }
+  }
+
+  .archive-topics {
+    display: flex;
+    flex: 0 0 100%;
+    flex-wrap: wrap;
+    gap: .45rem;
+  }
+
+  .archive-extra-topics {
+    display: contents;
+  }
+
+  .archive-topic {
+    min-height: 2rem;
+    max-width: 100%;
+    padding: .3rem .55rem;
+    border: 1px solid var(--strong-border);
+    background: var(--surface);
+    color: var(--muted);
+    font: 500 .75rem/1.35 var(--font-mono);
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
+  .archive-topic:is(:hover, :focus-visible, [aria-pressed="true"]) {
+    border-color: var(--blue-light);
+    background: var(--blue-wash);
+    color: var(--accent);
+  }
+
+  @media (forced-colors: active) {
+    .archive-ink {
+      visibility: hidden;
+    }
+
+    .archive-categories button[aria-pressed="true"],
+    .archive-topic[aria-pressed="true"] {
+      text-decoration: underline;
+      text-decoration-thickness: 2px;
+      text-underline-offset: .24em;
+    }
+  }
+
+  .archive-year:not([hidden]) ~ .archive-year {
+    margin-block-start: 1.5rem;
+  }
+
+  .archive-year-divider {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin: 0;
+    padding-block: .4rem .2rem;
+    color: var(--accent);
+    font: 600 .85rem/1.5 var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .archive-year-divider::after {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    content: '';
+  }
+
+  .archive-year .archive-list {
+    border-block-start: 0;
+  }
+
+  .archive-entry::after {
+    position: absolute;
+    inset-block: .4rem;
+    inset-inline-start: -.6rem;
+    width: 2px;
+    background: var(--blue-light);
+    content: '';
+    pointer-events: none;
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+
+  .archive-entry:is(:hover, :focus-within)::after {
+    transform: scaleY(1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .archive-entry::after {
+      transition: transform 250ms var(--motion-ease);
+    }
+  }
+
+  .archive-date {
+    font-family: var(--font-mono);
+  }
+
+  .archive-summary h3 {
+    margin: 0 0 .45rem;
+    font: 700 clamp(1.18rem, 2.3vw, 1.6rem)/1.5 var(--font-display);
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+
+  .archive-summary h3 a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .archive-summary h3 a::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+  }
+
+  .archive-entry:is(:hover, :focus-within) h3 a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: .22em;
+  }
+
+  .archive-wip {
+    display: inline-block;
+    margin-inline-start: .5rem;
+    padding: .12rem .3rem;
+    border: 1px solid color-mix(in srgb, var(--warn) 48%, var(--border));
+    color: var(--warn);
+    font: 600 .68rem/1.25 var(--font-mono);
+    vertical-align: .15em;
+  }
 </style>
 
 <script>
@@ -91,15 +310,22 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
   const controls = archive?.querySelector<HTMLElement>('[data-archive-controls]');
   const input = archive?.querySelector<HTMLInputElement>('#article-query');
   const status = archive?.querySelector('[data-archive-status]');
-  const results = archive?.querySelectorAll<HTMLElement>('[data-post]');
   const empty = archive?.querySelector<HTMLElement>('[data-archive-empty]');
+  const keyHint = archive?.querySelector<HTMLElement>('.archive-search-kbd');
+  const clear = archive?.querySelector<HTMLButtonElement>('[data-archive-clear]');
   const buttons = [...(archive?.querySelectorAll<HTMLButtonElement>('[data-category]') ?? [])];
   const reset = archive?.querySelector('[data-archive-reset]');
   const categoryGroup = archive?.querySelector<HTMLElement>('[data-archive-categories]');
   const ink = categoryGroup?.querySelector<HTMLElement>('[data-archive-ink]');
+  const topicGroup = archive?.querySelector<HTMLElement>('[data-archive-topics]');
+  const topicButtons = [...(topicGroup?.querySelectorAll<HTMLButtonElement>('button[data-tag]') ?? [])];
+  const extraTopics = topicGroup?.querySelector('[data-archive-extra-topics]');
+  const topicTemplate = topicGroup?.querySelector<HTMLTemplateElement>('[data-archive-topic-template]');
+  const topicButtonTemplate = topicTemplate?.content.querySelector('button');
 
-  if (controls && input && status && results && empty) {
+  if (archive && controls && input && status && empty && keyHint && clear && topicGroup && extraTopics && topicButtonTemplate) {
     let category = '';
+    const selectedTags = new Map<string, string>();
     let inkAnimation: Animation | undefined;
     let rowAnimations: Animation[] = [];
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
@@ -107,13 +333,19 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
     const supportsAnimation = typeof Element.prototype.animate === 'function';
 
     function normalize(value: string) {
-      return value.normalize('NFKC').toLocaleLowerCase('zh-CN');
+      return value.normalize('NFKC').trim().toLowerCase();
     }
 
-    const posts = Array.from(results, (element) => ({
+    const fixedTopics = new Map(topicButtons.map((button) => [normalize(button.dataset.tag ?? ''), button]));
+    const extraTopicButtons = new Map<string, HTMLButtonElement>();
+    const years = Array.from(archive.querySelectorAll<HTMLElement>('[data-archive-year]'), (element) => ({
       element,
-      search: normalize(element.dataset.postSearch ?? ''),
-      category: element.dataset.postCategory,
+      posts: Array.from(element.querySelectorAll<HTMLElement>('[data-post]'), (post) => ({
+        element: post,
+        search: normalize(post.dataset.postSearch ?? ''),
+        category: post.dataset.postCategory,
+        tags: (JSON.parse(post.dataset.postTags ?? '[]') as string[]).map(normalize),
+      })),
     }));
 
     function positionInk(animate = false) {
@@ -152,27 +384,60 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
       positionInk(move && supportsAnimation && !reducedMotion.matches);
     }
 
-    const updateResults = (search: string, categoryChanged = false) => {
-      const terms = normalize(search.trim()).split(/\s+/u).filter(Boolean);
-      const animate = categoryChanged && supportsAnimation && !reducedMotion.matches;
+    const updateTags = () => {
+      for (const [tag, button] of fixedTopics) {
+        button.setAttribute('aria-pressed', String(selectedTags.has(tag)));
+      }
+
+      for (const [tag, button] of extraTopicButtons) {
+        if (selectedTags.has(tag)) continue;
+        if (document.activeElement === button) topicButtons.at(-1)?.focus();
+        button.remove();
+        extraTopicButtons.delete(tag);
+      }
+
+      for (const [tag, label] of selectedTags) {
+        if (fixedTopics.has(tag) || extraTopicButtons.has(tag)) continue;
+        const button = topicButtonTemplate.cloneNode(true) as HTMLButtonElement;
+        button.dataset.tag = label;
+        button.textContent = `#${label}`;
+        extraTopics.append(button);
+        extraTopicButtons.set(tag, button);
+      }
+    };
+
+    const updateResults = (animateRows = false) => {
+      const terms = normalize(input.value).split(/\s+/u).filter(Boolean);
+      const animate = animateRows && supportsAnimation && !reducedMotion.matches;
       const visible: HTMLElement[] = [];
       let visibleCount = 0;
 
       for (const animation of rowAnimations) animation.cancel();
       rowAnimations = [];
 
-      for (const post of posts) {
-        const matchingCategory = !category || category === post.category;
-        const matches = matchingCategory && terms.every((term) => post.search.includes(term));
-        post.element.hidden = !matches;
-        if (matches) {
+      for (const year of years) {
+        let yearHasResults = false;
+
+        for (const post of year.posts) {
+          const matchingCategory = !category || category === post.category;
+          const matchingTags = selectedTags.size === 0 || post.tags.some((tag) => selectedTags.has(tag));
+          const matches = matchingCategory && matchingTags && terms.every((term) => post.search.includes(term));
+          post.element.hidden = !matches;
+          if (!matches) continue;
+
+          yearHasResults = true;
           visibleCount += 1;
           if (animate && visible.length < 6) visible.push(post.element);
         }
+
+        year.element.hidden = !yearHasResults;
       }
 
-      status.textContent = `共 ${visibleCount} 篇文章`;
+      const count = `共 ${visibleCount} 篇文章`;
+      if (status.textContent?.trim() !== count) status.textContent = count;
       empty.hidden = visibleCount > 0;
+      clear.hidden = input.value === '';
+      keyHint.hidden = !clear.hidden;
 
       rowAnimations = visible.map((element, index) => element.animate(
         [{ opacity: .6, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }],
@@ -181,20 +446,34 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
     };
 
     const readFilters = () => {
-      const params = new URLSearchParams(window.location.search);
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
       const requestedCategory = params.get('category') ?? '';
 
       selectCategory(buttons.some((button) => button.dataset.category === requestedCategory)
         ? requestedCategory
         : '');
 
+      selectedTags.clear();
+      for (const label of params.getAll('tag')) {
+        const tag = normalize(label);
+        if (tag) selectedTags.set(tag, fixedTopics.get(tag)?.dataset.tag ?? label.trim());
+      }
+
       input.value = params.get('q') ?? '';
-      updateResults(input.value);
+      updateTags();
+      updateResults();
+
+      if (params.get('focus') === 'search') {
+        input.focus();
+        params.delete('focus');
+        window.history.replaceState(window.history.state, '', url);
+      }
     };
 
-    function saveFilters(search: string, categoryChanged = false) {
+    const saveFilters = (animateRows = false) => {
       const url = new URL(window.location.href);
-      const query = search.trim();
+      const query = input.value.trim();
 
       if (query) url.searchParams.set('q', query);
       else url.searchParams.delete('q');
@@ -202,24 +481,55 @@ const categories = [...new Set(posts.map(({ data }) => data.category))].sort((a,
       if (category) url.searchParams.set('category', category);
       else url.searchParams.delete('category');
 
-      window.history.replaceState(window.history.state, '', url);
-      updateResults(query, categoryChanged);
-    }
+      url.searchParams.delete('tag');
+      for (const tag of selectedTags.values()) url.searchParams.append('tag', tag);
 
-    input.addEventListener('input', () => saveFilters(input.value));
+      if (url.href !== window.location.href) window.history.replaceState(window.history.state, '', url);
+      updateResults(animateRows);
+    };
+
+    const clearSearch = () => {
+      input.value = '';
+      saveFilters();
+      input.focus();
+    };
+
+    input.addEventListener('input', (event) => {
+      if (!(event instanceof InputEvent && event.isComposing)) saveFilters();
+    });
+    input.addEventListener('compositionend', () => saveFilters());
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || event.isComposing) return;
+      event.preventDefault();
+      if (input.value) clearSearch();
+      else input.blur();
+    });
+    clear.addEventListener('click', clearSearch);
+
     for (const button of buttons) {
       button.addEventListener('click', () => {
         const selectedCategory = button.dataset.category ?? '';
         if (category === selectedCategory) return;
         selectCategory(selectedCategory, true);
-        saveFilters(input.value, true);
+        saveFilters(true);
       });
     }
 
+    topicGroup.addEventListener('click', (event) => {
+      if (!(event.target instanceof HTMLButtonElement) || !event.target.dataset.tag) return;
+      const label = event.target.dataset.tag;
+      const tag = normalize(label);
+      if (!selectedTags.delete(tag)) selectedTags.set(tag, label);
+      updateTags();
+      saveFilters(true);
+    });
+
     reset?.addEventListener('click', () => {
       selectCategory('', true);
+      selectedTags.clear();
       input.value = '';
-      saveFilters('', true);
+      updateTags();
+      saveFilters(true);
       input.focus();
     });
 

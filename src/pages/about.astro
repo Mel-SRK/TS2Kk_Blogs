@@ -2,6 +2,14 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { pathTo, siteProfile } from '../lib/site';
 import '../styles/reading.css';
+
+const focusAreas = [
+  { title: 'Binary Exploitation', detail: '栈、堆与 ROP', topics: 'Stack · Heap · ROP' },
+  { title: 'Reverse Engineering', detail: '虚拟机指令与程序混淆', topics: 'VM · Obfuscation · Z3' },
+  { title: 'Linux Internals', detail: '可执行文件、进程和系统调用', topics: 'ELF · ptrace · Syscalls' },
+  { title: 'Tooling & Automation', detail: '调试工具开发与脚本自动化', topics: 'C · Python · GDB' },
+];
+const toolchain = ['x86_64 Linux', 'GDB / pwndbg', 'IDA / Binary Ninja', 'pwntools', 'Unicorn', 'Z3', 'Obsidian', 'CMake'];
 ---
 
 <BaseLayout title="关于我" active="about">
@@ -9,10 +17,12 @@ import '../styles/reading.css';
     <header class="reading-heading about-heading">
       <img
         class="about-portrait"
-        src={pathTo(siteProfile.avatar)}
+        src={pathTo('images/ts2kk-avatar-216.webp')}
+        srcset={`${pathTo('images/ts2kk-avatar-144.webp')} 144w, ${pathTo('images/ts2kk-avatar-216.webp')} 216w`}
+        sizes="(max-width: 30rem) 4rem, 6.75rem"
         alt=""
-        width="960"
-        height="960"
+        width="216"
+        height="216"
         decoding="async"
       />
       <div>
@@ -36,12 +46,33 @@ import '../styles/reading.css';
         <a class="reading-button reading-button-secondary" href={pathTo('rss.xml')}>订阅 RSS</a>
       </nav>
     </div>
+
+    <section class="about-section" aria-labelledby="focus-areas">
+      <h2 id="focus-areas">研究方向</h2>
+      <ol class="focus-matrix" role="list">
+        {focusAreas.map(({ title, detail, topics }, index) => (
+          <li>
+            <span class="focus-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+            <h3 lang="en">{title}</h3>
+            <p>{detail}</p>
+            <span class="focus-topics" lang="en">{topics}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="about-section" aria-labelledby="toolchain">
+      <h2 id="toolchain">工具链与环境</h2>
+      <ul class="toolchain" role="list" lang="en">
+        {toolchain.map((tool) => <li>{tool}</li>)}
+      </ul>
+    </section>
   </div>
 </BaseLayout>
 
 <style>
   .about-page {
-    max-width: 44rem;
+    max-width: 62rem;
   }
 
   .about-heading {
@@ -64,16 +95,19 @@ import '../styles/reading.css';
   .about-portrait {
     display: block;
     flex: none;
-    width: clamp(4rem, 13vw, 6.75rem);
+    width: 6.75rem;
     height: auto;
-    border-radius: 50%;
+    border: 1px solid var(--strong-border);
     background: var(--panel);
-    box-shadow: 0 0 0 1px var(--strong-border);
   }
 
   .about-prose {
     padding-block-start: 1.55rem;
     border-block-start: 1px solid var(--border);
+  }
+
+  .about-prose > p {
+    max-width: 38rem;
   }
 
   .about-links {
@@ -85,5 +119,97 @@ import '../styles/reading.css';
 
   .about-contact {
     margin-block-end: .5rem;
+  }
+
+  .about-section {
+    margin-block-start: clamp(2rem, 5vw, 3.25rem);
+  }
+
+  .about-section h2 {
+    margin: 0 0 .85rem;
+    font: 650 clamp(1.25rem, 2vw, 1.5rem)/1.4 var(--font-display);
+  }
+
+  .focus-matrix,
+  .toolchain {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .focus-matrix {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    padding: 1px;
+    background: var(--border);
+  }
+
+  .focus-matrix li {
+    display: flex;
+    flex-direction: column;
+    min-height: 10rem;
+    padding: clamp(.85rem, 2.5vw, 1.35rem);
+    background: linear-gradient(150deg, var(--blue-wash), transparent 60%), var(--surface);
+  }
+
+  .focus-number,
+  .focus-topics,
+  .toolchain li {
+    font: 500 .75rem/1.5 var(--font-mono);
+  }
+
+  .focus-number {
+    color: var(--blue-light);
+  }
+
+  .focus-matrix h3 {
+    margin: .55rem 0 .25rem;
+    font: 650 1.1rem/1.25 var(--font-display);
+    overflow-wrap: anywhere;
+  }
+
+  .focus-matrix p {
+    margin: 0 0 .55rem;
+    color: var(--muted);
+    font-size: .9rem;
+  }
+
+  .focus-topics {
+    margin-block-start: auto;
+    color: var(--accent);
+  }
+
+  .toolchain {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+  }
+
+  .toolchain li {
+    padding: .35rem .55rem;
+    border: 1px solid var(--strong-border);
+    background: var(--surface);
+    color: var(--muted);
+  }
+
+  @media (min-width: 57rem) {
+    .focus-matrix {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 30rem) {
+    .about-portrait {
+      width: 4rem;
+    }
+
+    .focus-matrix {
+      grid-template-columns: 1fr;
+    }
+
+    .focus-matrix li {
+      min-height: 0;
+    }
   }
 </style>

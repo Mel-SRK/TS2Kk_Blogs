@@ -8,7 +8,28 @@ import '../styles/home.css';
 const posts = await getPosts();
 const homepagePosts = posts.filter((post) => !post.data.example);
 const featured = homepagePosts.find((post) => post.data.featured) ?? homepagePosts[0];
-const recent = homepagePosts.filter((post) => post.id !== featured?.id).slice(0, 3);
+const recent = homepagePosts.filter((post) => post.id !== featured?.id).slice(0, 5);
+const latestDate = homepagePosts[0]?.data.pubDate;
+const coverSizes = '(max-width: 700px) min(calc(112vw - max(2.24rem, 10.08vw)), 32rem), clamp(472px, 49.56vw, 642px)';
+const coverAvif = [656, 900, 1200].map((width) => `${pathTo(`images/ts2kk-cover-${width}.avif`)} ${width}w`).join(', ');
+const normalizeTag = (tag: string) => tag.normalize('NFKC').trim().toLowerCase();
+const tagHref = (tag: string) => pathTo(`posts/?tag=${encodeURIComponent(tag)}`);
+const taggedPosts = posts.map(({ data }) => new Set(data.tags.map(normalizeTag)));
+const countTaggedPosts = (...tags: string[]) => {
+  const normalized = tags.map(normalizeTag);
+  return taggedPosts.filter((postTags) => normalized.some((tag) => postTags.has(tag))).length;
+};
+
+const tracks = [
+  { label: 'PWN 二进制利用', href: tagHref('PWN'), count: countTaggedPosts('PWN') },
+  {
+    label: '技术与系统原理',
+    href: pathTo(`posts/?category=${encodeURIComponent('技术')}`),
+    count: posts.filter(({ data }) => data.category === '技术').length,
+  },
+  { label: 'Reverse 逆向', href: tagHref('Reverse'), count: countTaggedPosts('Reverse') },
+  { label: 'Crypto & Web', href: pathTo('posts/?tag=Crypto&tag=Web'), count: countTaggedPosts('Crypto', 'Web') },
+];
 ---
 
 <BaseLayout title={siteName} active="home">
@@ -17,46 +38,83 @@ const recent = homepagePosts.filter((post) => post.id !== featured?.id).slice(0,
       <div class="cover-stage">
         <div class="cover-ink cobalt-shape" aria-hidden="true"></div>
         <div class="cover-foreground">
+          <p class="cover-telemetry" lang="en">
+            <span class="cover-status"><span class="cover-status-dot" aria-hidden="true"></span>BINARY / LINUX / CTF</span>
+            <span class="cover-archive">ARCHIVE: {homepagePosts.length} ENTRIES</span>
+          </p>
           <h1 id="home-title" aria-label={siteName}>TS2Kk</h1>
           <picture class="cover-art">
+            <source type="image/avif" srcset={coverAvif} sizes={coverSizes} />
             <img
               src={pathTo('images/ts2kk-cover.webp')}
               srcset={`${pathTo('images/ts2kk-cover-small.webp')} 700w, ${pathTo('images/ts2kk-cover.webp')} 1200w`}
-              sizes="(max-width: 700px) 110vw, 650px"
+              sizes={coverSizes}
               alt="由 TS2Kk 头像衍生的钴蓝色石雕剪影"
               width="1200"
               height="1200"
               fetchpriority="high"
             />
           </picture>
+          <p class="cover-colophon" lang="en">
+            {latestDate && <span>LATEST <time datetime={latestDate.toISOString().slice(0, 10)}>{formatDate(latestDate)}</time></span>}
+            <span class="cover-focus">{latestDate && <span aria-hidden="true">· </span>}FOCUS PWN / REVERSE / SDB</span>
+          </p>
         </div>
       </div>
+      <a class="cover-enter" href={pathTo('posts/')}>浏览全部文章 <span aria-hidden="true">→</span></a>
     </section>
 
     <section class="home-profile" aria-labelledby="profile-name">
-      <img class="profile-avatar" src={pathTo(siteProfile.avatar)} alt="" width="960" height="960" decoding="async" />
+      <img
+        class="profile-avatar"
+        src={pathTo('images/ts2kk-avatar-144.webp')}
+        srcset={`${pathTo('images/ts2kk-avatar-144.webp')} 144w, ${pathTo('images/ts2kk-avatar-216.webp')} 216w`}
+        sizes="clamp(48px, 6vw, 68px)"
+        alt=""
+        width="144"
+        height="144"
+        decoding="async"
+      />
       <div class="profile-copy">
         <h2 id="profile-name">{siteProfile.name}</h2>
         <p>{siteProfile.bio}</p>
-        <a class="profile-email animated-underline" href={`mailto:${siteProfile.email}`}>{siteProfile.email}</a>
+        <a class="profile-chip profile-email" href={`mailto:${siteProfile.email}`}>{siteProfile.email}</a>
       </div>
       <nav class="profile-links" aria-label="作者资料">
-        <a class="animated-underline" href={siteProfile.githubUrl}>GitHub <span>@{siteProfile.githubHandle}</span></a>
-        <a class="animated-underline" href={pathTo('about/')}>关于我</a>
+        <a class="profile-chip" href={siteProfile.githubUrl}>GitHub <span>@{siteProfile.githubHandle}</span></a>
+        <a class="profile-chip" href={pathTo('about/')}>关于我</a>
       </nav>
     </section>
+
+    <nav class="home-tracks" aria-label="按专题浏览文章">
+      <ul role="list">
+        {tracks.map(({ label, href, count }) => (
+          <li>
+            <a href={href} aria-label={`${label}，${count} 篇文章`}>
+              <span>{label}</span>
+              <span class="track-count" aria-hidden="true">{String(count).padStart(2, '0')}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
 
     <section class="publication-index" id="writing" aria-label="博客文章">
       {featured && (
         <article class="lead-article" aria-labelledby="lead-title">
-          <p class="publication-label">精选文章</p>
+          <p class="publication-label lead-label"><span lang="en">// FEATURED</span> · {featured.data.category}</p>
           <h2 id="lead-title"><a href={pathTo(`posts/${encodeURIComponent(featured.id)}/`)}>{featured.data.title}</a></h2>
           <p class="lead-description">{featured.data.description}</p>
-          <p class="lead-meta">
+          <div class="lead-meta">
             <time datetime={featured.data.pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(featured.data.pubDate)}>{formatDate(featured.data.pubDate)}</time>
             <span aria-hidden="true">/</span>
             <span>{readingMinutes(featured.body)} 分钟阅读</span>
-          </p>
+            {featured.data.tags.length > 0 && (
+              <ul class="lead-tags" role="list" aria-label="精选文章标签">
+                {featured.data.tags.slice(0, 3).map((tag) => <li><a href={tagHref(tag)}>#{tag}</a></li>)}
+              </ul>
+            )}
+          </div>
         </article>
       )}
 
@@ -71,7 +129,10 @@ const recent = homepagePosts.filter((post) => post.id !== featured?.id).slice(0,
               <li>
                 <a class="feed-entry blue-hover" href={pathTo(`posts/${encodeURIComponent(post.id)}/`)}>
                   <h3>{post.data.title}</h3>
-                  <time datetime={post.data.pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(post.data.pubDate)}>{formatDate(post.data.pubDate)}</time>
+                  <span class="feed-meta">
+                    <span class="feed-category">{post.data.category}</span>
+                    <time datetime={post.data.pubDate.toISOString().slice(0, 10)} aria-label={accessibleDate(post.data.pubDate)}>{formatDate(post.data.pubDate)}</time>
+                  </span>
                 </a>
               </li>
             ))}

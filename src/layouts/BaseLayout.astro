@@ -1,6 +1,7 @@
 ---
 import '@fontsource-variable/geist';
 import '@fontsource-variable/space-grotesk';
+import '@fontsource-variable/jetbrains-mono/wght.css';
 import CobaltNavigation from '../components/CobaltNavigation.astro';
 import '../styles/global.css';
 import { pathTo, siteDescription, siteName, siteProfile } from '../lib/site';
@@ -21,6 +22,8 @@ const links = [
   { key: 'posts', label: '文章', href: pathTo('posts/') },
   { key: 'about', label: '关于', href: pathTo('about/') },
 ];
+const archivePath = pathTo('posts/');
+const searchPath = pathTo('posts/?focus=search');
 ---
 
 <!doctype html>
@@ -28,7 +31,11 @@ const links = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#121211" />
+    <style is:inline>
+      html { background-color: var(--bg, #121211); }
+    </style>
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
@@ -47,10 +54,11 @@ const links = [
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
-    <header class="site-header">
+    <header class="site-header" id="top" tabindex="-1">
       <div class="container header-inner">
         <a class="wordmark" href={pathTo()} aria-label="TS2Kk Blog 首页" aria-current={active === 'home' ? 'page' : undefined}>
           <span class="wordmark-name">TS2Kk</span>
+          <span class="wordmark-edition" aria-hidden="true">REV.02 / BINARY &amp; LINUX</span>
         </a>
         <nav class="site-nav" aria-label="主导航">
           {links.map(({ key, href, label }) => (
@@ -60,6 +68,10 @@ const links = [
             </a>
           ))}
         </nav>
+        <a class="header-search-hint" href={searchPath} aria-label="搜索文章" aria-keyshortcuts="Control+/ Meta+/" data-site-search>
+          <kbd aria-hidden="true">Ctrl+/</kbd>
+          <span>搜索</span>
+        </a>
         <a class="rss-link" href={pathTo('rss.xml')} aria-label="RSS 订阅">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none">
             <circle cx="4" cy="16" r="1.35" fill="currentColor" />
@@ -75,10 +87,55 @@ const links = [
     <footer class="site-footer">
       <div class="container footer-inner">
         <div class="footer-brand">
-          <span>© {new Date().getUTCFullYear()} TS2Kk Blog</span>
+          <p class="footer-title">© {new Date().getUTCFullYear()} {siteName}</p>
+          <p>{siteProfile.bio}</p>
+          <p class="footer-colophon">Astro Static · Cobalt Design</p>
         </div>
-        <a href={pathTo('rss.xml')}>RSS 订阅</a>
+        <nav class="footer-directory" aria-labelledby="footer-directory-title">
+          <p class="footer-title" id="footer-directory-title">站点目录</p>
+          <ul role="list">
+            <li><a href={archivePath}>全部文章</a></li>
+            <li><a href={pathTo(`posts/?category=${encodeURIComponent('技术')}`)}>技术文章</a></li>
+            <li><a href={pathTo('posts/?category=Write-ups')}>CTF Write-ups</a></li>
+            <li><a href={pathTo('about/')}>关于作者</a></li>
+          </ul>
+        </nav>
+        <nav class="footer-connect" aria-labelledby="footer-connect-title">
+          <p class="footer-title" id="footer-connect-title">联系与订阅</p>
+          <ul role="list">
+            <li><a href={siteProfile.githubUrl}>GitHub @{siteProfile.githubHandle}</a></li>
+            <li><a href={`mailto:${siteProfile.email}`}>Email</a></li>
+            <li><a href={pathTo('rss.xml')}>RSS 订阅</a></li>
+            <li><a href="#top"><span aria-hidden="true">↑</span> 回到顶部</a></li>
+          </ul>
+        </nav>
       </div>
     </footer>
   </body>
 </html>
+
+<script>
+  const searchLink = document.querySelector<HTMLAnchorElement>('[data-site-search]');
+
+  function focusArchiveSearch() {
+    const input = document.querySelector<HTMLInputElement>('#article-query');
+    if (!input || input.closest('[hidden]')) return false;
+    input.focus();
+    return true;
+  }
+
+  searchLink?.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (focusArchiveSearch()) event.preventDefault();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (!searchLink || event.key !== '/' || event.defaultPrevented || event.isComposing || event.repeat) return;
+    if ((!event.ctrlKey && !event.metaKey) || event.altKey || document.querySelector('dialog[open]')) return;
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]'))) return;
+
+    event.preventDefault();
+    if (!focusArchiveSearch()) location.assign(searchLink.href);
+  });
+</script>

@@ -18,27 +18,35 @@ const navPaths = [homePath, pathTo('posts/'), pathTo('about/')];
 
   function openCover() {
     if (!isHome || !motion.matches || typeof window.CSS?.registerProperty !== 'function') return;
+    const navigation = performance.getEntriesByType('navigation')[0];
+    if (navigation?.type === 'back_forward') return;
     const referrer = document.referrer && new URL(document.referrer);
-    if (referrer && referrer.origin === location.origin && referrer.pathname !== homePath && referrer.pathname.startsWith(homePath)) return;
-    if (performance.getEntriesByType('navigation')[0]?.type === 'back_forward') return;
+    if (navigation?.type !== 'reload' && referrer && referrer.origin === location.origin && referrer.pathname.startsWith(homePath)) return;
     root.classList.add('cover-arrival');
   }
 
+  openCover();
+
   if (nativeNavigation) {
+    if (isHome) {
+      window.addEventListener('pageswap', (event) => {
+        if (!event.viewTransition || !root.classList.contains('cover-arrival')) return;
+        const ink = document.querySelector('.cover-ink');
+        if (ink && Number(getComputedStyle(ink).getPropertyValue('--poster-opening')) < 1) {
+          event.viewTransition.skipTransition();
+        }
+      });
+    }
+
     window.addEventListener('pagereveal', (event) => {
-      if (!event.viewTransition) {
-        openCover();
-        return;
-      }
+      if (!event.viewTransition) return;
+      root.classList.remove('cover-arrival');
       const sourceUrl = Reflect.get(window, 'navigation')?.activation?.from?.url || document.referrer;
       const source = sourceUrl && new URL(sourceUrl);
       root.dataset.cobaltMotion = isHome ? 'expand'
         : source && source.origin === location.origin && source.pathname === homePath ? 'fold' : 'slide';
     });
   } else {
-    // The initial poster needs its class before the browser builds the first frame.
-    openCover();
-
     const prefetched = new Set();
     let departure;
 
@@ -54,7 +62,7 @@ const navPaths = [homePath, pathTo('posts/'), pathTo('about/')];
         const header = document.querySelector('.header-inner').getBoundingClientRect();
         const inkStart = parseFloat(getComputedStyle(root).getPropertyValue('--cover-ink-start')) / 100;
         return {
-          left: `${header.left + header.width * inkStart}px`, top: `${header.bottom + scrollY}px`,
+          left: `${header.left + header.width * inkStart}px`, top: `${header.bottom}px`,
           width: `${header.width * (1 - inkStart)}px`, height: 'var(--cover-height)', clipPath: 'var(--cobalt-cover)',
         };
       }
@@ -67,7 +75,7 @@ const navPaths = [homePath, pathTo('posts/'), pathTo('about/')];
       const { x, y, width, height } = marker.getBoundingClientRect();
       marker.remove();
       return {
-        left: `${x}px`, top: `${y + scrollY}px`, width: `${width}px`, height: `${height}px`, clipPath: 'var(--cobalt-tab)',
+        left: `${x}px`, top: `${y}px`, width: `${width}px`, height: `${height}px`, clipPath: 'var(--cobalt-tab)',
       };
     }
 
